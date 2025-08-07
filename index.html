@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sienge Automation</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 600px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+    h1 {
+      text-align: center;
+    }
+    form {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    input[type="file"], input[type="submit"] {
+      padding: 10px;
+      font-size: 16px;
+    }
+    #status {
+      margin-top: 20px;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+  <h1>Sienge Automation</h1>
+  <form id="uploadForm" enctype="multipart/form-data" action="/upload" method="POST">
+    <label for="excelFile">Upload Excel File (.xlsx):</label>
+    <input type="file" id="excelFile" name="excelFile" accept=".xlsx" required>
+    <input type="submit" value="Start Automation">
+  </form>
+  <div id="status">Status: Waiting for file upload...</div>
+  <script>
+    const form = document.getElementById('uploadForm');
+    form.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      const status = document.getElementById('status');
+      status.textContent = 'Status: Processing...';
+      const formData = new FormData(form);
+      try {
+        const response = await fetch('/upload', {
+          method: 'POST',
+          body: formData
+        });
+        const result = await response.json();
+        status.textContent = `Status: ${result.message}`;
+      } catch (error) {
+        status.textContent = `Status: Error - ${error.message}`;
+      }
+    });
+  </script>
+</body>
+</html>
