@@ -14,12 +14,13 @@
     h1 {
       text-align: center;
     }
-    form {
+    form, .download-section {
       display: flex;
       flex-direction: column;
       gap: 10px;
+      margin-bottom: 20px;
     }
-    input[type="file"], input[type="submit"] {
+    input[type="file"], input[type="submit"], button {
       padding: 10px;
       font-size: 16px;
     }
@@ -31,6 +32,10 @@
 </head>
 <body>
   <h1>Sienge Automation</h1>
+  <div class="download-section">
+    <label>Download Excel Template:</label>
+    <button onclick="window.location.href='/download-template'">Download Template</button>
+  </div>
   <form id="uploadForm" enctype="multipart/form-data" action="/upload" method="POST">
     <label for="excelFile">Upload Excel File (.xlsx):</label>
     <input type="file" id="excelFile" name="excelFile" accept=".xlsx" required>
