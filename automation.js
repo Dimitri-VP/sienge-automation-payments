@@ -1,6 +1,28 @@
 const puppeteer = require('puppeteer');
 const { PQueue } = require('p-queue');
 const { simulateHumanDelay } = require('./utils');
+const fs = require('fs');
+
+async function loginSienge(page, cookiesFilePath) {
+  try {
+    // Carrega os cookies do arquivo
+    const cookies = JSON.parse(fs.readFileSync(cookiesFilePath));
+    await page.setCookie(...cookies);
+
+    // Acessa a página inicial
+    await page.goto('https://npu2.sienge.com.br/sienge/8/index.html#/common/page/1256', {
+      waitUntil: 'networkidle2'
+    });
+    await simulateHumanDelay();
+
+    // Verifica se o login foi bem-sucedido
+    await page.waitForSelector('//*[@id="filter.dtBaixa"]', { timeout: 10000 });
+    console.log('Login bem-sucedido com cookies!');
+  } catch (error) {
+    console.error('Erro durante o login com cookies:', error);
+    throw error;
+  }
+}
 
 async function registerPayment(page, data) {
   try {
@@ -102,16 +124,16 @@ async function registerPayment(page, data) {
   }
 }
 
-async function processPayments(data) {
+async function processPayments(data, cookiesFilePath) {
   const browser = await puppeteer.launch({
     headless: true,
     args: ['--no-sandbox', '--disable-setuid-sandbox']
   });
   const page = await browser.newPage();
-  const queue = new PQueue({ concurrency: 1 }); // Alterado para 1 operação por vez
+  const queue = new PQueue({ concurrency: 1 });
 
   try {
-    // Assume que o login já foi realizado ou não é necessário
+    await loginSienge(page, cookiesFilePath);
     for (const entry of data) {
       await queue.add(() => registerPayment(page, entry));
     }
