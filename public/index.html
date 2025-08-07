@@ -44,6 +44,10 @@
     .instructions li {
       margin-bottom: 10px;
     }
+    .note {
+      font-size: 14px;
+      color: #555;
+    }
   </style>
 </head>
 <body>
@@ -51,6 +55,7 @@
   <div class="download-section">
     <label>Download Excel Template:</label>
     <button onclick="window.location.href='/download-template'">Download Template</button>
+    <p class="note"><strong>Note:</strong> The automation will process data starting from the <strong>second row</strong> of the Excel file. The first row is the header and must not be changed. The second row is an example and will be included unless you remove or replace it.</p>
   </div>
   <form id="uploadForm" enctype="multipart/form-data" action="/upload" method="POST">
     <label for="excelFile">Upload Excel File (.xlsx):</label>
@@ -107,6 +112,19 @@
         </ul>
       </li>
     </ol>
+    <h3>How to Fill the Excel File</h3>
+    <p>When filling the Excel template, follow these guidelines for the <strong>TipoBaixa</strong> column:</p>
+    <ul>
+      <li>Use one of the following options exactly as written (copy and paste if needed):</li>
+      <li><strong>Pagamento</strong></li>
+      <li><strong>Adiantamento</strong></li>
+      <li><strong>Cancelamento</strong></li>
+      <li><strong>Por Bens</strong></li>
+      <li><strong>Outros</strong></li>
+      <li><strong>Abatimento de Adiantamento</strong></li>
+      <li>Example: For a payment transaction, enter <strong>Pagamento</strong> in the TipoBaixa column.</li>
+      <li>Do not use other words, numbers, or different capitalizations (e.g., "pagamento" or "PAGAMENTO").</li>
+    </ul>
   </div>
   <div id="status">Status: Waiting for file upload...</div>
   <script>
