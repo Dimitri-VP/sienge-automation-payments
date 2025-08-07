@@ -1,5 +1,5 @@
 const puppeteer = require('puppeteer');
-const { PQueue } = require('p-queue');
+const PQueue = require('p-queue').default;
 const { simulateHumanDelay } = require('./utils');
 const fs = require('fs');
 
