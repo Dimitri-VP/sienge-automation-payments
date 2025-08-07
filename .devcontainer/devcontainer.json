@@ -18,5 +18,11 @@
   "containerEnv": {
     "PUPPETEER_EXECUTABLE_PATH": "/usr/bin/chromium-browser",
     "PUPPETEER_SKIP_CHROMIUM_DOWNLOAD": "true"
+  },
+  "portsAttributes": {
+    "3000": {
+      "label": "Application",
+      "onAutoForward": "openPreview"
+    }
   }
 }
