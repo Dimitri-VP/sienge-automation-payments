@@ -7,7 +7,7 @@
   <style>
     body {
       font-family: Arial, sans-serif;
-      max-width: 600px;
+      max-width: 800px;
       margin: 0 auto;
       padding: 20px;
     }
@@ -28,6 +28,22 @@
       margin-top: 20px;
       font-weight: bold;
     }
+    .instructions {
+      background-color: #f9f9f9;
+      padding: 15px;
+      border-radius: 5px;
+      margin-top: 20px;
+    }
+    .instructions h3 {
+      margin-top: 0;
+    }
+    .instructions ol {
+      margin: 0;
+      padding-left: 20px;
+    }
+    .instructions li {
+      margin-bottom: 10px;
+    }
   </style>
 </head>
 <body>
@@ -39,8 +55,59 @@
   <form id="uploadForm" enctype="multipart/form-data" action="/upload" method="POST">
     <label for="excelFile">Upload Excel File (.xlsx):</label>
     <input type="file" id="excelFile" name="excelFile" accept=".xlsx" required>
+    <label for="cookiesFile">Upload Cookies File (.json):</label>
+    <input type="file" id="cookiesFile" name="cookiesFile" accept=".json" required>
     <input type="submit" value="Start Automation">
   </form>
+  <div class="instructions">
+    <h3>How to Create the Cookies File (cookies.json)</h3>
+    <p>Follow these steps to extract cookies from the Sienge Platform and save them as a cookies.json file. You only need Google Chrome and Notepad (available on any Windows computer).</p>
+    <ol>
+      <li><strong>Log in to the Sienge Platform</strong>:
+        <ul>
+          <li>Open Google Chrome on your computer.</li>
+          <li>Go to <a href="https://npu2.sienge.com.br/sienge/8/index.html#/common/page/1256" target="_blank">https://npu2.sienge.com.br</a>.</li>
+          <li>Log in with your credentials (e.g., click "Sign in with Sienge ID," select your email, and enter your password).</li>
+          <li>Ensure you're on the payments page where you see fields like "Data da Baixa."</li>
+        </ul>
+      </li>
+      <li><strong>Open Chrome Developer Tools</strong>:
+        <ul>
+          <li>Press <strong>F12</strong> on your keyboard, or right-click anywhere on the page and select <strong>Inspect</strong>.</li>
+          <li>A panel will open. Click the <strong>Application</strong> tab at the top (if you don't see it, click the double arrow >> and select Application).</li>
+        </ul>
+      </li>
+      <li><strong>Find the Cookies</strong>:
+        <ul>
+          <li>In the left sidebar, expand the <strong>Cookies</strong> section by clicking the arrow next to it.</li>
+          <li>Click on <strong>https://npu2.sienge.com.br</strong>. A table will show all cookies, with columns like Name, Value, Domain, etc.</li>
+          <li>Right-click anywhere in the cookie table and select <strong>Copy all as JSON</strong>. This copies the cookies to your clipboard.</li>
+        </ul>
+      </li>
+      <li><strong>Save Cookies to a File</strong>:
+        <ul>
+          <li>Open <strong>Notepad</strong> (search for "Notepad" in the Windows search bar).</li>
+          <li>Paste the copied content (Ctrl+V). It should start with [ and end with ].</li>
+          <li>Click <strong>File</strong> > <strong>Save As</strong>.</li>
+          <li>In the "File name" field, type <strong>cookies.json</strong> (include the .json extension).</li>
+          <li>In the "Save as type" dropdown, select <strong>All Files (*.*)</strong>.</li>
+          <li>Choose a location (e.g., Desktop) and click <strong>Save</strong>.</li>
+        </ul>
+      </li>
+      <li><strong>Upload the File</strong>:
+        <ul>
+          <li>Use the "Upload Cookies File" field above to select your <strong>cookies.json</strong> file.</li>
+          <li>Upload the Excel file and click "Start Automation" to run the process.</li>
+        </ul>
+      </li>
+      <li><strong>Important Notes</strong>:
+        <ul>
+          <li>If the automation fails with a login error, your cookies may have expired. Repeat these steps to create a new cookies.json file.</li>
+          <li>Keep the cookies.json file secure, as it contains sensitive session information.</li>
+        </ul>
+      </li>
+    </ol>
+  </div>
   <div id="status">Status: Waiting for file upload...</div>
   <script>
     const form = document.getElementById('uploadForm');
