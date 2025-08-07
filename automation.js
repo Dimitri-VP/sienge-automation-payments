@@ -108,7 +108,7 @@ async function processPayments(data) {
     args: ['--no-sandbox', '--disable-setuid-sandbox']
   });
   const page = await browser.newPage();
-  const queue = new PQueue({ concurrency: 5 });
+  const queue = new PQueue({ concurrency: 1 }); // Alterado para 1 operação por vez
 
   try {
     // Assume que o login já foi realizado ou não é necessário
