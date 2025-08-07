@@ -2,65 +2,103 @@ const puppeteer = require('puppeteer');
 const { PQueue } = require('p-queue');
 const { simulateHumanDelay } = require('./utils');
 
-async function loginSienge(page) {
-  await page.goto('https://npu2.sienge.com.br/sienge/8/index.html#/common/page/1256');
-  await simulateHumanDelay();
-  await page.click('//*[@id="btnEntrarComSiengeID"]');
-  await simulateHumanDelay();
-  await page.click('//*[@id="root"]/div[2]/div/div/div/div/div/div[1]/div/div/div/div/ul/div');
-  await page.waitForNavigation();
-}
-
 async function registerPayment(page, data) {
-  await page.goto('https://npu2.sienge.com.br/sienge/8/index.html#/common/page/1256');
-  await simulateHumanDelay();
-  await page.type('//*[@id="filter.dtBaixa"]', data.Data);
-  await simulateHumanDelay();
-  await page.select('//*[@id="filter.cdTipoBaixa"]', data.TipoBaixa);
-  await simulateHumanDelay();
-  await page.type('//*[@id="filter.contaCorrente.empresa.cdEmpresaView"]', data.Empresa.toString());
-  await simulateHumanDelay();
-  await page.type('//*[@id="entity.contaCorrente.contaCorrentePK.nuConta"]', data.ContaCorrente.toString());
-  await simulateHumanDelay();
-  await page.type('//*[@id="filter.titulo"]', data.Titulo.toString());
-  await simulateHumanDelay();
-  await page.type('//*[@id="filter.parcela"]', data.Parcela.toString());
-  await simulateHumanDelay();
-  await page.click('//*[@id="holderConteudo2"]/form/p/span[1]/span/input');
-  await simulateHumanDelay();
-
-  const selectElementExists = await page.$('//*[@id="row[0].flSelecao_0"]');
-  if (selectElementExists) {
-    await page.click('//*[@id="row[0].flSelecao_0"]');
+  try {
+    // Acessa a página inicial
+    await page.goto('https://npu2.sienge.com.br/sienge/8/index.html#/common/page/1256', {
+      waitUntil: 'networkidle2'
+    });
     await simulateHumanDelay();
 
-    await page.click('//*[@id="row[0].editar_0"]');
+    // Preenche os campos do filtro
+    await page.waitForSelector('//*[@id="filter.dtBaixa"]');
+    await page.type('//*[@id="filter.dtBaixa"]', data.Data);
     await simulateHumanDelay();
 
-    if (data.ParcialTotal === 'T') {
-      await page.click('//*[@id="entity.flParcialTotalTotal"]');
-    } else if (data.ParcialTotal === 'P') {
-      await page.click('//*[@id="entity.flParcialTotalParcial"]');
+    await page.waitForSelector('//*[@id="filter.cdTipoBaixa"]');
+    await page.select('//*[@id="filter.cdTipoBaixa"]', data.TipoBaixa);
+    await simulateHumanDelay();
+
+    await page.waitForSelector('//*[@id="filter.contaCorrente.empresa.cdEmpresaView"]');
+    await page.type('//*[@id="filter.contaCorrente.empresa.cdEmpresaView"]', data.Empresa.toString());
+    await simulateHumanDelay();
+
+    await page.waitForSelector('//*[@id="entity.contaCorrente.contaCorrentePK.nuConta"]');
+    await page.type('//*[@id="entity.contaCorrente.contaCorrentePK.nuConta"]', data.ContaCorrente.toString());
+    await simulateHumanDelay();
+
+    await page.waitForSelector('//*[@id="filter.titulo"]');
+    await page.type('//*[@id="filter.titulo"]', data.Titulo.toString());
+    await simulateHumanDelay();
+
+    await page.waitForSelector('//*[@id="filter.parcela"]');
+    await page.type('//*[@id="filter.parcela"]', data.Parcela.toString());
+    await simulateHumanDelay();
+
+    // Clica em Consultar
+    await page.waitForSelector('//*[@id="holderConteudo2"]/form/p/span[1]/span/input');
+    await page.click('//*[@id="holderConteudo2"]/form/p/span[1]/span/input');
+    await simulateHumanDelay();
+
+    // Verifica se o elemento de seleção existe
+    const selectElementExists = await page.$('//*[@id="row[0].flSelecao_0"]');
+    if (selectElementExists) {
+      await page.click('//*[@id="row[0].flSelecao_0"]');
       await simulateHumanDelay();
-      await page.type('//*[@id="entity.vlPagto"]', data.Valor.toString());
+
+      // Verifica se deve executar o bloco opcional
+      if (data.ExecutarOpcional === 'S') {
+        await page.waitForSelector('//*[@id="row[0].editar_0"]');
+        await page.click('//*[@id="row[0].editar_0"]');
+        await simulateHumanDelay();
+
+        if (data.ParcialTotal === 'T') {
+          await page.waitForSelector('//*[@id="entity.flParcialTotalTotal"]');
+          await page.click('//*[@id="entity.flParcialTotalTotal"]');
+        } else if (data.ParcialTotal === 'P') {
+          await page.waitForSelector('//*[@id="entity.flParcialTotalParcial"]');
+          await page.click('//*[@id="entity.flParcialTotalParcial"]');
+          await simulateHumanDelay();
+          await page.waitForSelector('//*[@id="entity.vlPagto"]');
+          await page.type('//*[@id="entity.vlPagto"]', data.Valor.toString());
+        }
+        await simulateHumanDelay();
+
+        await page.waitForSelector('//*[@id="holderConteudo2"]/table[3]/tbody/tr/td[1]/a');
+        await page.click('//*[@id="holderConteudo2"]/table[3]/tbody/tr/td[1]/a');
+        await simulateHumanDelay();
+
+        await page.waitForSelector('//*[@id="entity.vlCorMonetaria"]');
+        await page.type('//*[@id="entity.vlCorMonetaria"]', data.CorrecaoMonetaria.toString());
+        await simulateHumanDelay();
+
+        await page.waitForSelector('//*[@id="entity.vlJuros"]');
+        await page.type('//*[@id="entity.vlJuros"]', data.Juros.toString());
+        await simulateHumanDelay();
+
+        await page.waitForSelector('//*[@id="entity.vlMulta"]');
+        await page.type('//*[@id="entity.vlMulta"]', data.Multa.toString());
+        await simulateHumanDelay();
+
+        await page.waitForSelector('//*[@id="holderConteudo2"]/form/p/span/span/input');
+        await page.click('//*[@id="holderConteudo2"]/form/p/span/span/input');
+        await simulateHumanDelay();
+
+        await page.waitForSelector('//*[@id="holderConteudo2"]/table[1]/tbody/tr/td[1]/a');
+        await page.click('//*[@id="holderConteudo2"]/table[1]/tbody/tr/td[1]/a');
+        await simulateHumanDelay();
+      }
+
+      // Clica em Efetuar Baixa
+      await page.waitForSelector('//*[@id="botaoSalvar"]');
+      await page.click('//*[@id="botaoSalvar"]');
+      await page.waitForNavigation({ waitUntil: 'networkidle2' });
+    } else {
+      console.log(`Nenhum resultado encontrado para Título ${data.Titulo}, Parcela ${data.Parcela}`);
     }
-    await simulateHumanDelay();
-
-    await page.click('//*[@id="holderConteudo2"]/table[3]/tbody/tr/td[1]/a');
-    await simulateHumanDelay();
-    await page.type('//*[@id="entity.vlCorMonetaria"]', data.CorrecaoMonetaria.toString());
-    await simulateHumanDelay();
-    await page.type('//*[@id="entity.vlJuros"]', data.Juros.toString());
-    await simulateHumanDelay();
-    await page.type('//*[@id="entity.vlMulta"]', data.Multa.toString());
-    await simulateHumanDelay();
-
-    await page.click('//*[@id="holderConteudo2"]/form/p/span/span/input');
-    await simulateHumanDelay();
-    await page.click('//*[@id="holderConteudo2"]/table[1]/tbody/tr/td[1]/a');
-    await simulateHumanDelay();
-    await page.click('//*[@id="botaoSalvar"]');
-    await page.waitForNavigation();
+  } catch (error) {
+    console.error(`Erro ao processar Título ${data.Titulo}, Parcela ${data.Parcela}:`, error);
+    throw error;
   }
 }
 
@@ -73,7 +111,7 @@ async function processPayments(data) {
   const queue = new PQueue({ concurrency: 5 });
 
   try {
-    await loginSienge(page);
+    // Assume que o login já foi realizado ou não é necessário
     for (const entry of data) {
       await queue.add(() => registerPayment(page, entry));
     }
