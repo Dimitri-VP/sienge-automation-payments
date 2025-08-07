@@ -16,7 +16,7 @@ async function loginSienge(page, cookiesFilePath) {
     await simulateHumanDelay();
 
     // Verifica se o login foi bem-sucedido
-    await page.waitForSelector('//*[@id="filter.dtBaixa"]', { timeout: 10000 });
+    await page.waitForSelector('//*[@id="filter.dtBaixa"]', { timeout: 30000 });
     console.log('Login bem-sucedido com cookies!');
   } catch (error) {
     console.error('Erro durante o login com cookies:', error);
