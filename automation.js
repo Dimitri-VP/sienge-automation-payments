@@ -14,6 +14,7 @@ const VALID_TIPO_BAIXA = [
 ];
 
 async function loginSienge(page, cookiesFilePath) {
+  let frame = null;
   try {
     // Carrega os cookies do arquivo
     const cookies = JSON.parse(fs.readFileSync(cookiesFilePath));
@@ -26,7 +27,7 @@ async function loginSienge(page, cookiesFilePath) {
     console.log('Acessando a página da Sienge...');
     await page.goto('https://npu2.sienge.com.br/sienge/8/index.html#/common/page/1256', {
       waitUntil: 'networkidle2',
-      timeout: 60000 // Aumentado para 60 segundos
+      timeout: 60000
     });
     await simulateHumanDelay();
 
@@ -44,28 +45,26 @@ async function loginSienge(page, cookiesFilePath) {
     // Verifica se há iframes
     const iframes = await page.$$('iframe');
     console.log(`Encontrados ${iframes.length} iframes na página`);
-    if (iframes.length > 0) {
-      console.log('Tentando buscar elemento dentro do primeiro iframe...');
-      const frame = await iframes[0].contentFrame();
-      const elementInFrame = await frame.$('#filter\\.dtBaixa');
-      console.log('Elemento #filter.dtBaixa no iframe:', elementInFrame ? 'Encontrado' : 'Não encontrado');
+    if (iframes.length === 0) {
+      throw new Error('Nenhum iframe encontrado, mas o elemento deveria estar em um iframe.');
     }
 
-    // Verifica o DOM
-    const domCheck = await page.evaluate(() => document.querySelector('#filter\\.dtBaixa') ? 'Elemento encontrado' : 'Elemento não encontrado');
-    console.log('Verificação do DOM:', domCheck);
+    // Usa o primeiro iframe
+    frame = await iframes[0].contentFrame();
+    console.log('Acessando o primeiro iframe...');
+    const elementInFrame = await frame.$('xpath=//*[@id="filter.dtBaixa"]');
+    console.log('Elemento //*[@id="filter.dtBaixa"] no iframe:', elementInFrame ? 'Encontrado' : 'Não encontrado');
 
-    // Aguarda o elemento dinamicamente e visível
-    await page.waitForFunction(
-      () => document.querySelector('#filter\\.dtBaixa') !== null,
-      { timeout: 60000, visible: true } // Exige visibilidade
-    );
+    // Aguarda o elemento no iframe com XPath
+    await frame.waitForXPath('//*[@id="filter.dtBaixa"]', { timeout: 60000, visible: true });
+    console.log('Elemento filter.dtBaixa encontrado no iframe com XPath');
 
     // Captura de tela após encontrar o elemento
     await page.screenshot({ path: 'screenshot-login-success.png' });
     console.log('Captura de tela de sucesso salva em screenshot-login-success.png');
 
     console.log('Login bem-sucedido com cookies!');
+    return frame; // Retorna o frame para uso em registerPayment
   } catch (error) {
     // Captura de tela em caso de erro
     await page.screenshot({ path: 'screenshot-login-error.png' });
@@ -75,7 +74,7 @@ async function loginSienge(page, cookiesFilePath) {
   }
 }
 
-async function registerPayment(page, data) {
+async function registerPayment(page, frame, data) {
   try {
     // Acessa a página inicial
     await page.goto('https://npu2.sienge.com.br/sienge/8/index.html#/common/page/1256', {
@@ -84,145 +83,100 @@ async function registerPayment(page, data) {
     });
     await simulateHumanDelay();
 
-    // Preenche os campos do filtro
-    await page.waitForFunction(
-      () => document.querySelector('#filter\\.dtBaixa') !== null,
-      { timeout: 60000, visible: true }
-    );
-    await page.type('#filter\\.dtBaixa', data.Data);
+    // Usa o frame retornado por loginSienge
+    if (!frame) {
+      const iframes = await page.$$('iframe');
+      if (iframes.length === 0) {
+        throw new Error('Nenhum iframe encontrado em registerPayment.');
+      }
+      frame = await iframes[0].contentFrame();
+    }
+
+    // Preenche os campos do filtro no iframe
+    await frame.waitForXPath('//*[@id="filter.dtBaixa"]', { timeout: 60000, visible: true });
+    await frame.type('xpath=//*[@id="filter.dtBaixa"]', data.Data);
     await simulateHumanDelay();
 
-    await page.waitForFunction(
-      () => document.querySelector('#filter\\.cdTipoBaixa') !== null,
-      { timeout: 60000, visible: true }
-    );
+    await frame.waitForXPath('//*[@id="filter.cdTipoBaixa"]', { timeout: 60000, visible: true });
     if (!VALID_TIPO_BAIXA.includes(data.TipoBaixa)) {
       throw new Error(`Valor inválido para TipoBaixa: ${data.TipoBaixa}. Use uma das opções: ${VALID_TIPO_BAIXA.join(', ')}.`);
     }
-    await page.select('#filter\\.cdTipoBaixa', data.TipoBaixa);
+    await frame.select('xpath=//*[@id="filter.cdTipoBaixa"]', data.TipoBaixa);
     await simulateHumanDelay();
 
-    await page.waitForFunction(
-      () => document.querySelector('#filter\\.contaCorrente\\.empresa\\.cdEmpresaView') !== null,
-      { timeout: 60000, visible: true }
-    );
-    await page.type('#filter\\.contaCorrente\\.empresa\\.cdEmpresaView', data.Empresa.toString());
+    await frame.waitForXPath('//*[@id="filter.contaCorrente.empresa.cdEmpresaView"]', { timeout: 60000, visible: true });
+    await frame.type('xpath=//*[@id="filter.contaCorrente.empresa.cdEmpresaView"]', data.Empresa.toString());
     await simulateHumanDelay();
 
-    await page.waitForFunction(
-      () => document.querySelector('#entity\\.contaCorrente\\.contaCorrentePK\\.nuConta') !== null,
-      { timeout: 60000, visible: true }
-    );
-    await page.type('#entity\\.contaCorrente\\.contaCorrentePK\\.nuConta', data.ContaCorrente.toString());
+    await frame.waitForXPath('//*[@id="entity.contaCorrente.contaCorrentePK.nuConta"]', { timeout: 60000, visible: true });
+    await frame.type('xpath=//*[@id="entity.contaCorrente.contaCorrentePK.nuConta"]', data.ContaCorrente.toString());
     await simulateHumanDelay();
 
-    await page.waitForFunction(
-      () => document.querySelector('#filter\\.titulo') !== null,
-      { timeout: 60000, visible: true }
-    );
-    await page.type('#filter\\.titulo', data.Titulo.toString());
+    await frame.waitForXPath('//*[@id="filter.titulo"]', { timeout: 60000, visible: true });
+    await frame.type('xpath=//*[@id="filter.titulo"]', data.Titulo.toString());
     await simulateHumanDelay();
 
-    await page.waitForFunction(
-      () => document.querySelector('#filter\\.parcela') !== null,
-      { timeout: 60000, visible: true }
-    );
-    await page.type('#filter\\.parcela', data.Parcela.toString());
+    await frame.waitForXPath('//*[@id="filter.parcela"]', { timeout: 60000, visible: true });
+    await frame.type('xpath=//*[@id="filter.parcela"]', data.Parcela.toString());
     await simulateHumanDelay();
 
     // Clica em Consultar
-    await page.waitForFunction(
-      () => document.querySelector('#holderConteudo2 > form > p > span:nth-child(1) > span > input') !== null,
-      { timeout: 60000, visible: true }
-    );
-    await page.click('#holderConteudo2 > form > p > span:nth-child(1) > span > input');
+    await frame.waitForXPath('//*[@id="holderConteudo2"]/form/p/span[1]/span/input', { timeout: 60000, visible: true });
+    await frame.click('xpath=//*[@id="holderConteudo2"]/form/p/span[1]/span/input');
     await simulateHumanDelay();
 
     // Verifica se o elemento de seleção existe
-    const selectElementExists = await page.$('#row\\[0\\]\\.flSelecao_0');
+    const selectElementExists = await frame.$('#row\\[0\\]\\.flSelecao_0');
     if (selectElementExists) {
-      await page.click('#row\\[0\\]\\.flSelecao_0');
+      await frame.click('#row\\[0\\]\\.flSelecao_0');
       await simulateHumanDelay();
 
       // Verifica se deve executar o bloco opcional
       if (data.ExecutarOpcional === 'S') {
-        await page.waitForFunction(
-          () => document.querySelector('#row\\[0\\]\\.editar_0') !== null,
-          { timeout: 60000, visible: true }
-        );
-        await page.click('#row\\[0\\]\\.editar_0');
+        await frame.waitForXPath('//*[@id="row[0].editar_0"]', { timeout: 60000, visible: true });
+        await frame.click('xpath=//*[@id="row[0].editar_0"]');
         await simulateHumanDelay();
 
         if (data.ParcialTotal === 'T') {
-          await page.waitForFunction(
-            () => document.querySelector('#entity\\.flParcialTotalTotal') !== null,
-            { timeout: 60000, visible: true }
-          );
-          await page.click('#entity\\.flParcialTotalTotal');
+          await frame.waitForXPath('//*[@id="entity.flParcialTotalTotal"]', { timeout: 60000, visible: true });
+          await frame.click('xpath=//*[@id="entity.flParcialTotalTotal"]');
         } else if (data.ParcialTotal === 'P') {
-          await page.waitForFunction(
-            () => document.querySelector('#entity\\.flParcialTotalParcial') !== null,
-            { timeout: 60000, visible: true }
-          );
-          await page.click('#entity\\.flParcialTotalParcial');
+          await frame.waitForXPath('//*[@id="entity.flParcialTotalParcial"]', { timeout: 60000, visible: true });
+          await frame.click('xpath=//*[@id="entity.flParcialTotalParcial"]');
           await simulateHumanDelay();
-          await page.waitForFunction(
-            () => document.querySelector('#entity\\.vlPagto') !== null,
-            { timeout: 60000, visible: true }
-          );
-          await page.type('#entity\\.vlPagto', data.Valor.toString());
+          await frame.waitForXPath('//*[@id="entity.vlPagto"]', { timeout: 60000, visible: true });
+          await frame.type('xpath=//*[@id="entity.vlPagto"]', data.Valor.toString());
         }
         await simulateHumanDelay();
 
-        await page.waitForFunction(
-          () => document.querySelector('#holderConteudo2 > table:nth-child(3) > tbody > tr > td:nth-child(1) > a') !== null,
-          { timeout: 60000, visible: true }
-        );
-        await page.click('#holderConteudo2 > table:nth-child(3) > tbody > tr > td:nth-child(1) > a');
+        await frame.waitForXPath('//*[@id="holderConteudo2"]/table[3]/tbody/tr/td[1]/a', { timeout: 60000, visible: true });
+        await frame.click('xpath=//*[@id="holderConteudo2"]/table[3]/tbody/tr/td[1]/a');
         await simulateHumanDelay();
 
-        await page.waitForFunction(
-          () => document.querySelector('#entity\\.vlCorMonetaria') !== null,
-          { timeout: 60000, visible: true }
-        );
-        await page.type('#entity\\.vlCorMonetaria', data.CorrecaoMonetaria.toString());
+        await frame.waitForXPath('//*[@id="entity.vlCorMonetaria"]', { timeout: 60000, visible: true });
+        await frame.type('xpath=//*[@id="entity.vlCorMonetaria"]', data.CorrecaoMonetaria.toString());
         await simulateHumanDelay();
 
-        await page.waitForFunction(
-          () => document.querySelector('#entity\\.vlJuros') !== null,
-          { timeout: 60000, visible: true }
-        );
-        await page.type('#entity\\.vlJuros', data.Juros.toString());
+        await frame.waitForXPath('//*[@id="entity.vlJuros"]', { timeout: 60000, visible: true });
+        await frame.type('xpath=//*[@id="entity.vlJuros"]', data.Juros.toString());
         await simulateHumanDelay();
 
-        await page.waitForFunction(
-          () => document.querySelector('#entity\\.vlMulta') !== null,
-          { timeout: 60000, visible: true }
-        );
-        await page.type('#entity\\.vlMulta', data.Multa.toString());
+        await frame.waitForXPath('//*[@id="entity.vlMulta"]', { timeout: 60000, visible: true });
+        await frame.type('xpath=//*[@id="entity.vlMulta"]', data.Multa.toString());
         await simulateHumanDelay();
 
-        await page.waitForFunction(
-          () => document.querySelector('#holderConteudo2 > form > p > span > span > input') !== null,
-          { timeout: 60000, visible: true }
-        );
-        await page.click('#holderConteudo2 > form > p > span > span > input');
+        await frame.waitForXPath('//*[@id="holderConteudo2"]/form/p/span/span/input', { timeout: 60000, visible: true });
+        await frame.click('xpath=//*[@id="holderConteudo2"]/form/p/span/span/input');
         await simulateHumanDelay();
 
-        await page.waitForFunction(
-          () => document.querySelector('#holderConteudo2 > table:nth-child(1) > tbody > tr > td:nth-child(1) > a') !== null,
-          { timeout: 60000, visible: true }
-        );
-        await page.click('#holderConteudo2 > table:nth-child(1) > tbody > tr > td:nth-child(1) > a');
+        await frame.waitForXPath('//*[@id="holderConteudo2"]/table[1]/tbody/tr/td[1]/a', { timeout: 60000, visible: true });
+        await frame.click('xpath=//*[@id="holderConteudo2"]/table[1]/tbody/tr/td[1]/a');
         await simulateHumanDelay();
       }
 
       // Clica em Efetuar Baixa
-      await page.waitForFunction(
-        () => document.querySelector('#botaoSalvar') !== null,
-        { timeout: 60000, visible: true }
-      );
-      await page.click('#botaoSalvar');
+      await frame.waitForXPath('//*[@id="botaoSalvar"]', { timeout: 60000, visible: true });
+      await frame.click('xpath=//*[@id="botaoSalvar"]');
       await page.waitForNavigation({ waitUntil: 'networkidle2', timeout: 60000 });
     } else {
       console.log(`Nenhum resultado encontrado para Título ${data.Titulo}, Parcela ${data.Parcela}`);
@@ -242,9 +196,9 @@ async function processPayments(data, cookiesFilePath) {
   const queue = new PQueue({ concurrency: 1 });
 
   try {
-    await loginSienge(page, cookiesFilePath);
+    const frame = await loginSienge(page, cookiesFilePath);
     for (const entry of data) {
-      await queue.add(() => registerPayment(page, entry));
+      await queue.add(() => registerPayment(page, frame, entry));
     }
     return { success: true, message: 'Processamento concluído com sucesso!' };
   } catch (error) {
