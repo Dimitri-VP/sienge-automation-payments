@@ -19,14 +19,14 @@ async function loginSienge(page, cookiesFilePath) {
     const cookies = JSON.parse(fs.readFileSync(cookiesFilePath));
     await page.setCookie(...cookies);
 
-    // Define um user-agent para evitar detecção de bot
+    // Define um user-agent para simular navegador
     await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/129.0.0.0 Safari/537.36');
 
     // Acessa a página inicial
     console.log('Acessando a página da Sienge...');
     await page.goto('https://npu2.sienge.com.br/sienge/8/index.html#/common/page/1256', {
       waitUntil: 'networkidle2',
-      timeout: 30000
+      timeout: 60000 // Aumentado para 60 segundos
     });
     await simulateHumanDelay();
 
@@ -37,17 +37,39 @@ async function loginSienge(page, cookiesFilePath) {
       throw new Error('Redirecionamento detectado. Cookies podem estar inválidos.');
     }
 
-    // Captura de tela para depuração
-    await page.screenshot({ path: 'screenshot-login.png' });
-    console.log('Captura de tela salva em screenshot-login.png');
+    // Captura de tela inicial
+    await page.screenshot({ path: 'screenshot-login-initial.png' });
+    console.log('Captura de tela inicial salva em screenshot-login-initial.png');
 
-    // Aguarda o elemento dinamicamente
+    // Verifica se há iframes
+    const iframes = await page.$$('iframe');
+    console.log(`Encontrados ${iframes.length} iframes na página`);
+    if (iframes.length > 0) {
+      console.log('Tentando buscar elemento dentro do primeiro iframe...');
+      const frame = await iframes[0].contentFrame();
+      const elementInFrame = await frame.$('#filter\\.dtBaixa');
+      console.log('Elemento #filter.dtBaixa no iframe:', elementInFrame ? 'Encontrado' : 'Não encontrado');
+    }
+
+    // Verifica o DOM
+    const domCheck = await page.evaluate(() => document.querySelector('#filter\\.dtBaixa') ? 'Elemento encontrado' : 'Elemento não encontrado');
+    console.log('Verificação do DOM:', domCheck);
+
+    // Aguarda o elemento dinamicamente e visível
     await page.waitForFunction(
       () => document.querySelector('#filter\\.dtBaixa') !== null,
-      { timeout: 30000 }
+      { timeout: 60000, visible: true } // Exige visibilidade
     );
+
+    // Captura de tela após encontrar o elemento
+    await page.screenshot({ path: 'screenshot-login-success.png' });
+    console.log('Captura de tela de sucesso salva em screenshot-login-success.png');
+
     console.log('Login bem-sucedido com cookies!');
   } catch (error) {
+    // Captura de tela em caso de erro
+    await page.screenshot({ path: 'screenshot-login-error.png' });
+    console.log('Captura de tela de erro salva em screenshot-login-error.png');
     console.error('Erro durante o login com cookies:', error);
     throw error;
   }
@@ -58,23 +80,22 @@ async function registerPayment(page, data) {
     // Acessa a página inicial
     await page.goto('https://npu2.sienge.com.br/sienge/8/index.html#/common/page/1256', {
       waitUntil: 'networkidle2',
-      timeout: 30000
+      timeout: 60000
     });
     await simulateHumanDelay();
 
     // Preenche os campos do filtro
     await page.waitForFunction(
       () => document.querySelector('#filter\\.dtBaixa') !== null,
-      { timeout: 30000 }
+      { timeout: 60000, visible: true }
     );
     await page.type('#filter\\.dtBaixa', data.Data);
     await simulateHumanDelay();
 
     await page.waitForFunction(
       () => document.querySelector('#filter\\.cdTipoBaixa') !== null,
-      { timeout: 30000 }
+      { timeout: 60000, visible: true }
     );
-    // Valida o valor de TipoBaixa
     if (!VALID_TIPO_BAIXA.includes(data.TipoBaixa)) {
       throw new Error(`Valor inválido para TipoBaixa: ${data.TipoBaixa}. Use uma das opções: ${VALID_TIPO_BAIXA.join(', ')}.`);
     }
@@ -83,28 +104,28 @@ async function registerPayment(page, data) {
 
     await page.waitForFunction(
       () => document.querySelector('#filter\\.contaCorrente\\.empresa\\.cdEmpresaView') !== null,
-      { timeout: 30000 }
+      { timeout: 60000, visible: true }
     );
     await page.type('#filter\\.contaCorrente\\.empresa\\.cdEmpresaView', data.Empresa.toString());
     await simulateHumanDelay();
 
     await page.waitForFunction(
       () => document.querySelector('#entity\\.contaCorrente\\.contaCorrentePK\\.nuConta') !== null,
-      { timeout: 30000 }
+      { timeout: 60000, visible: true }
     );
     await page.type('#entity\\.contaCorrente\\.contaCorrentePK\\.nuConta', data.ContaCorrente.toString());
     await simulateHumanDelay();
 
     await page.waitForFunction(
       () => document.querySelector('#filter\\.titulo') !== null,
-      { timeout: 30000 }
+      { timeout: 60000, visible: true }
     );
     await page.type('#filter\\.titulo', data.Titulo.toString());
     await simulateHumanDelay();
 
     await page.waitForFunction(
       () => document.querySelector('#filter\\.parcela') !== null,
-      { timeout: 30000 }
+      { timeout: 60000, visible: true }
     );
     await page.type('#filter\\.parcela', data.Parcela.toString());
     await simulateHumanDelay();
@@ -112,7 +133,7 @@ async function registerPayment(page, data) {
     // Clica em Consultar
     await page.waitForFunction(
       () => document.querySelector('#holderConteudo2 > form > p > span:nth-child(1) > span > input') !== null,
-      { timeout: 30000 }
+      { timeout: 60000, visible: true }
     );
     await page.click('#holderConteudo2 > form > p > span:nth-child(1) > span > input');
     await simulateHumanDelay();
@@ -127,7 +148,7 @@ async function registerPayment(page, data) {
       if (data.ExecutarOpcional === 'S') {
         await page.waitForFunction(
           () => document.querySelector('#row\\[0\\]\\.editar_0') !== null,
-          { timeout: 30000 }
+          { timeout: 60000, visible: true }
         );
         await page.click('#row\\[0\\]\\.editar_0');
         await simulateHumanDelay();
@@ -135,19 +156,19 @@ async function registerPayment(page, data) {
         if (data.ParcialTotal === 'T') {
           await page.waitForFunction(
             () => document.querySelector('#entity\\.flParcialTotalTotal') !== null,
-            { timeout: 30000 }
+            { timeout: 60000, visible: true }
           );
           await page.click('#entity\\.flParcialTotalTotal');
         } else if (data.ParcialTotal === 'P') {
           await page.waitForFunction(
             () => document.querySelector('#entity\\.flParcialTotalParcial') !== null,
-            { timeout: 30000 }
+            { timeout: 60000, visible: true }
           );
           await page.click('#entity\\.flParcialTotalParcial');
           await simulateHumanDelay();
           await page.waitForFunction(
             () => document.querySelector('#entity\\.vlPagto') !== null,
-            { timeout: 30000 }
+            { timeout: 60000, visible: true }
           );
           await page.type('#entity\\.vlPagto', data.Valor.toString());
         }
@@ -155,42 +176,42 @@ async function registerPayment(page, data) {
 
         await page.waitForFunction(
           () => document.querySelector('#holderConteudo2 > table:nth-child(3) > tbody > tr > td:nth-child(1) > a') !== null,
-          { timeout: 30000 }
+          { timeout: 60000, visible: true }
         );
         await page.click('#holderConteudo2 > table:nth-child(3) > tbody > tr > td:nth-child(1) > a');
         await simulateHumanDelay();
 
         await page.waitForFunction(
           () => document.querySelector('#entity\\.vlCorMonetaria') !== null,
-          { timeout: 30000 }
+          { timeout: 60000, visible: true }
         );
         await page.type('#entity\\.vlCorMonetaria', data.CorrecaoMonetaria.toString());
         await simulateHumanDelay();
 
         await page.waitForFunction(
           () => document.querySelector('#entity\\.vlJuros') !== null,
-          { timeout: 30000 }
+          { timeout: 60000, visible: true }
         );
         await page.type('#entity\\.vlJuros', data.Juros.toString());
         await simulateHumanDelay();
 
         await page.waitForFunction(
           () => document.querySelector('#entity\\.vlMulta') !== null,
-          { timeout: 30000 }
+          { timeout: 60000, visible: true }
         );
         await page.type('#entity\\.vlMulta', data.Multa.toString());
         await simulateHumanDelay();
 
         await page.waitForFunction(
           () => document.querySelector('#holderConteudo2 > form > p > span > span > input') !== null,
-          { timeout: 30000 }
+          { timeout: 60000, visible: true }
         );
         await page.click('#holderConteudo2 > form > p > span > span > input');
         await simulateHumanDelay();
 
         await page.waitForFunction(
           () => document.querySelector('#holderConteudo2 > table:nth-child(1) > tbody > tr > td:nth-child(1) > a') !== null,
-          { timeout: 30000 }
+          { timeout: 60000, visible: true }
         );
         await page.click('#holderConteudo2 > table:nth-child(1) > tbody > tr > td:nth-child(1) > a');
         await simulateHumanDelay();
@@ -199,10 +220,10 @@ async function registerPayment(page, data) {
       // Clica em Efetuar Baixa
       await page.waitForFunction(
         () => document.querySelector('#botaoSalvar') !== null,
-        { timeout: 30000 }
+        { timeout: 60000, visible: true }
       );
       await page.click('#botaoSalvar');
-      await page.waitForNavigation({ waitUntil: 'networkidle2' });
+      await page.waitForNavigation({ waitUntil: 'networkidle2', timeout: 60000 });
     } else {
       console.log(`Nenhum resultado encontrado para Título ${data.Titulo}, Parcela ${data.Parcela}`);
     }
